@@ -276,3 +276,92 @@ Definition dfs (g: Graph) (o d : Node) := dfs' g o d (nodes g).
 
 (* Exemplo da execução da função de DFS sobre o grafo de exemplo 1 *)
 Compute (dfs example_graph_1 1 2).
+
+Fixpoint get_node_dist (dist : list (Node*Weight)) (u : Node) (inf : Weight) : Weight :=
+  match dist with
+  | [] => inf
+  | (u',w) :: dist' => if u =? u' then w else get_node_dist dist' u inf
+  end.
+
+Fixpoint update_node_dist (dist : list(Node*Weight)) (u : Node) (w : Weight) : list(Node*Weight) :=
+  match dist with
+  | [] => []
+  | (u', w') :: dist' => if u =? u' then (u,w) :: dist' else (u',w') :: update_node_dist dist' u w
+  end.
+
+Fixpoint get_edges_in_list (a : Adj) (b : list Node) :=
+  match a with
+  | [] => []
+  | (w, v) :: t => if in_nat_list b v then (v, w) :: get_edges_in_list t b else get_edges_in_list t b
+  end.
+
+Fixpoint min_weight_in_list (dist : list(Node*Weight)) (l : list Node) (inf : Weight) : Weight :=
+  match dist with
+  | [] => inf
+  | (u,w) :: t => let md := min_weight_in_list t l inf in
+                  if in_nat_list l u then
+                    if w <? md then w else md
+                  else md
+  end.
+
+Fixpoint node_with_min_weight_in_list (dist : list(Node*Weight)) (l : list Node) (w : Weight) :=
+  match dist with
+  | [] => None
+  | (u,w') :: t =>  if in_nat_list l u then
+                      if w =? w' then
+                        Some u
+                      else
+                        node_with_min_weight_in_list t l w
+                    else
+                      node_with_min_weight_in_list t l w
+  end.
+
+Definition next_node (dist : list(Node*Weight)) (to_vis : list Node) (inf : Weight) :=
+  node_with_min_weight_in_list dist to_vis (min_weight_in_list dist to_vis inf).
+
+
+Program Fixpoint dijkstra' (g : Graph) (u d : Node) (inf : Weight)
+  (to_vis : list Node) (dist : list (Node*Weight)) {measure (length to_vis)} : Weight :=
+  let ret := 
+    get_node_dist dist d inf
+  in
+  if u =? d then ret
+  else
+    let to_vis' :=
+      set_nat_head to_vis u
+    in
+    let suc := match (get_node_context g u) with
+      | None => []
+      | Some (mkcontext _ s) => get_edges_in_list s to_vis
+    end in
+    let relax (n : (Node*Weight)) :=
+      let v := (fst n) in
+      let w := (snd n) in
+      let new_dist := 
+        (get_node_dist dist u inf) + w
+      in
+      if (new_dist) <? (get_node_dist dist v inf) then update_node_dist dist v new_dist else dist
+    in
+    let new_dist_list : list (Node*Weight) :=
+      dist
+    in
+    match to_vis' with
+      | [] => ret
+      | h :: t => match (next_node new_dist_list t inf) with
+        | None => ret
+        | Some v => dijkstra' g v d inf t new_dist_list
+      end
+    end.
+Next Obligation.
+Proof.
+  rename Heq_to_vis' into H.
+  unfold set_nat_head in H.
+  destruct (in_nat_list to_vis u) eqn:E in H.
+  - injection H.
+    apply in_nat_list_iff_In in E.
+    intros H1 H2.
+    rewrite H1.
+    unfold lt.
+    rewrite <- remove_nat_one_length; auto.
+  - rewrite <- H. auto.
+Qed.
