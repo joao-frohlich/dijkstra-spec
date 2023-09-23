@@ -319,6 +319,7 @@ Fixpoint node_with_min_weight_in_list (dist : list(Node*Weight)) (l : list Node)
 Definition next_node (dist : list(Node*Weight)) (to_vis : list Node) (inf : Weight) :=
   node_with_min_weight_in_list dist to_vis (min_weight_in_list dist to_vis inf).
 
+(* Fixpoint fold_list_left (f : ()) (l : list (Node*Weight)) *)
 
 Program Fixpoint dijkstra' (g : Graph) (u d : Node) (inf : Weight)
   (to_vis : list Node) (dist : list (Node*Weight)) {measure (length to_vis)} : Weight :=
@@ -334,16 +335,19 @@ Program Fixpoint dijkstra' (g : Graph) (u d : Node) (inf : Weight)
       | None => []
       | Some (mkcontext _ s) => get_edges_in_list s to_vis
     end in
-    let relax (n : (Node*Weight)) :=
+    let relax (dist : list (Node*Weight)) (n : (Node*Weight)) : list (Node*Weight) :=
       let v := (fst n) in
       let w := (snd n) in
       let new_dist := 
         (get_node_dist dist u inf) + w
       in
-      if (new_dist) <? (get_node_dist dist v inf) then update_node_dist dist v new_dist else dist
+      if (new_dist) <? (get_node_dist dist v inf) then
+        update_node_dist dist v new_dist
+      else
+        dist
     in
     let new_dist_list : list (Node*Weight) :=
-      dist
+      fold_left (relax) suc dist
     in
     match to_vis' with
       | [] => ret
@@ -365,3 +369,34 @@ Proof.
     rewrite <- remove_nat_one_length; auto.
   - rewrite <- H. auto.
 Qed.
+
+Fixpoint sum_adj_weight (a : Adj) :=
+  match a with
+  | [] => 0
+  | (w,_) :: a' => w + sum_adj_weight a'
+  end.
+
+Fixpoint sum_weights (g : Graph) : Weight :=
+  match g with
+  | Empty => 0
+  | c & g => match c with
+    | mkcontext _ a => (sum_adj_weight a) + sum_weights g
+    end
+  end.
+
+Definition dijkstra (g : Graph) (o d : Node) : Weight :=
+  let inf :=
+    sum_weights g
+  in
+  let dist :=
+    (combine (nodes g) (repeat inf (length (nodes g))))
+  in
+  dijkstra' g o d inf (nodes g) (update_node_dist dist o 0).
+
+Definition example_graph_2 :=
+  (mkcontext 1 [(4,3); (1,2)]) &
+  (mkcontext 2 [(2,3)]) &
+  (mkcontext 3 []) &
+  Empty.
+
+Compute dijkstra example_graph_2 1 3.
