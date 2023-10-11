@@ -138,10 +138,6 @@ Proof.
     auto.
 Qed.
 
-(* Função de inserção de nó. Um nó é adicionado sem nenhuma aresta *)
-Definition add_node (g : Graph) (x : Node) :=
-    (mkcontext x []) & g.
-
 
 (* Função de mapeamento sobre grafos. Aplica uma função f sobre todos
 os nós de um grafo g *)
@@ -163,26 +159,24 @@ Proof.
     auto.
 Qed.
 
-(* Realiza um fold sobre todos os nós de um grafo *)
-Fixpoint ufold (A : Type) (f : Context -> A -> A) (d : A) (g : Graph) : A :=
-    match g with
-    | Empty => d
-    | c & g => f c (ufold A f d g)
-    end.
-
-Definition get_node (c : Context) (l' : list nat) :=
-    match c with
-    | (mkcontext n s) => n :: l'
-    end.
-
 Fixpoint get_node_context (g : Graph) (u : Node) : option Context :=
     match g with
     | Empty => None
     | (mkcontext n s) & g' => if n =? u then Some (mkcontext n s) else get_node_context g' u
     end.
 
-(* Pega o conjunto de nós de um grafo *)
-Definition nodes (g : Graph) : list Node := ufold (list nat) get_node [] g.
+Fixpoint get_nodes (g : Graph) : list Node :=
+    match g with
+    | Empty => []
+    | (mkcontext n _) & g' => n :: get_nodes g'
+    end. 
+
+(* Função de inserção de nó. Um nó é adicionado sem nenhuma aresta, e apenas é adicionado se ele não existe no grafo *)
+Definition add_node (g : Graph) (x : Node) :=
+    match get_node_context g x with
+    | None => (mkcontext x []) & g
+    | Some _ => g
+    end.
 
 (* Função para adicionar uma aresta. Ela adiciona o par (w,v) na
 lista de adjacência do nó u *)
@@ -190,12 +184,12 @@ Fixpoint add_edge' (g : Graph) (u v : Node) (w : nat) :=
     match g with
     | Empty => Empty
     | (mkcontext n s) & g' =>
-        if u =? n then (mkcontext n ((w,v) :: s)) & g'
+        if u =? n then (mkcontext n ((v,w) :: s)) & g'
         else (mkcontext n s) & add_edge' g' u v w
     end.
 
 Definition add_edge (g : Graph) (u v : Node) (w : nat) :=
-    let N := nodes g in
+    let N := get_nodes g in
         if in_nat_list N u then
             if in_nat_list N v then
                 add_edge' g u v w
@@ -271,11 +265,65 @@ Proof.
   - rewrite <- H. auto.
 Qed.
 
+
 (* Simplificação da chamada da função de DFS *)
-Definition dfs (g: Graph) (o d : Node) := dfs' g o d (nodes g).
+Definition dfs (g: Graph) (o d : Node) := 
+  match g with
+  | Empty => false
+  | _ => dfs' g o d (get_nodes g)
+  end.
 
 (* Exemplo da execução da função de DFS sobre o grafo de exemplo 1 *)
 Compute (dfs example_graph_1 1 2).
+
+Example foo : forall (g : Graph) (o : Node), 
+  g <> Empty -> dfs g o o = true.
+Proof.
+  intros. induction g.
+  - destruct H; auto.
+  - unfold dfs, dfs'.
+    unfold dfs'_func; simpl; rewrite fix_sub_eq; simpl.
+    + assert (o =? o = true) by (rewrite Nat.eqb_eq; auto); rewrite H0; auto.
+    + unfold projT1, projT2.
+      intros x f1 f2 Heq.
+      destruct x, s, s.
+      destruct (x0 =? x1); auto.
+      repeat f_equal.
+      
+
+  (* - unfold dfs, get_nodes; simpl.
+    unfold dfs', dfs'_func; simpl; rewrite fix_sub_eq; simpl.
+    + assert (o =? o = true) by (rewrite Nat.eqb_eq; auto); rewrite H; auto.
+    + intros x f g Heq.
+      destruct x.
+      destruct s.
+      destruct s.
+      destruct (x0 =? x1).
+      * auto.
+      * repeat f_equal.
+        exists (mkcontext ()). *)
+Admitted.
+
+(* 
+Exemplo de prova sobre Program Fixpoint
+Program Fixpoint bla (n:nat) {measure n} :=
+match n with
+| 0 => 0
+| S n' => S (bla n')
+end.
+
+Lemma obv : forall n, bla n = n.
+Proof.
+  intros n. induction n.
+  - reflexivity.
+  - unfold bla; rewrite fix_sub_eq; simpl; fold (bla n).
+    rewrite IHn; reflexivity.
+    intros x f g Heq.
+    destruct x.
+    + reflexivity.
+    + f_equal. apply Heq.
+Qed.
+*)
 
 Fixpoint get_node_dist (dist : list (Node*Weight)) (u : Node) (inf : Weight) : Weight :=
   match dist with
@@ -389,14 +437,43 @@ Definition dijkstra (g : Graph) (o d : Node) : Weight :=
     sum_weights g
   in
   let dist :=
-    (combine (nodes g) (repeat inf (length (nodes g))))
+    (combine (get_nodes g) (repeat inf (length (get_nodes g))))
   in
-  dijkstra' g o d inf (nodes g) (update_node_dist dist o 0).
+  dijkstra' g o d inf (get_nodes g) (update_node_dist dist o 0).
 
 Definition example_graph_2 :=
   (mkcontext 1 [(3,4); (2,1)]) &
-  (mkcontext 2 [(3,2)]) &
-  (mkcontext 3 []) &
+  (mkcontext 2 [(3,2); (1,1)]) &
+  (mkcontext 3 [(2,1)]) &
   Empty.
 
 Compute dijkstra example_graph_2 1 3.
+
+Lemma dijkstra_o_o_0 : forall (g : Graph) (o : Node),
+  In o (get_nodes g) -> dijkstra g o o = 0.
+Proof.
+  intros.
+  unfold dijkstra.
+  induction g.
+  - destruct H.
+  - simpl.
+    destruct c.
+    simpl in H.
+    destruct H.
+    + simpl.
+      rewrite H.
+      destruct (o =? o) eqn:E.
+      * unfold get_nodes.
+        simpl.
+        unfold dijkstra'.
+        unfold dijkstra'_func.
+        simpl.
+        unfold projT1, projT2.
+        unfold get_node_dist.
+        unfold dijkstra'_func_obligation_2.
+        unfold projT2.
+        simpl.
+      * rewrite Nat.eqb_neq in E. contradiction.
+    +  
+        
+    
