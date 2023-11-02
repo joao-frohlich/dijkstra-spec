@@ -3,7 +3,7 @@
 
 (* A diferença para o arquivo GrafoExemplo3.v consiste na utilização de proposições *)
 
-(* Brincar com grafos infinitos *)
+(* Para as considerações finais, dá para sugerir brincar com grafos infinitos *)
 
 From Coq Require Import Strings.String.
 From Coq Require Export Bool.Bool.
@@ -308,7 +308,7 @@ Compute grafo_exemplo_2.
 
 (* Pega todos os nós de uma lista de adjacência que estejam contidos
 numa lista de nós *)
-Fixpoint get_elem_in_list (a : Adj) (b : list Node) :=
+Fixpoint get_elem_in_list (a : Adj) (b : list nat) :=
     match a with
     | [] => []
     | (h, _) :: t => if in_nat_list b h then h :: get_elem_in_list t b else get_elem_in_list t b
@@ -382,30 +382,15 @@ Proof.
   - rewrite <- H. auto.
 Qed.
 
-Check fold_left.
-
-Check app.
-
-Section Fold_List_Left_Recursor.
-  Variables A B : Type.
-  Variable f : list A -> list B -> list A.
-
-  Fixpoint fold_list_left (l : list (list B)) (a0 : list A) {struct l} : list A :=
-    match l with
-    | [] => a0
-    | cons b t => fold_list_left t (f a0 b)
-    end.
-End Fold_List_Left_Recursor.
-
-Check map.
-
-Compute [[1]] ++ [[2]].
+(* Simplificação da chamada da função de DFS *)
+Definition dfs (g : Graph) (o d : Node) :=
+  dfs' g o d (get_nodes g).
 
 Definition append_nat_lists (l1 l2 : list (list nat)) := l1 ++ l2.
 
-Compute (fold_left append_nat_lists [[[1]];[[2;5]]] nil).
+(* Compute (fold_left append_nat_lists [[[1]];[[2;5]]] nil).
 
-Compute (map (cons 1) [[1];[2]]).
+Compute (map (cons 1) [[1];[2]]). *)
 
 (* Funciona semelhante à função de DFS (que não é bem um DFS), porém retorna todos os caminhos sem loops entre u e d no
 grafo g. Dá para provar propriedades como a garantia que todos os caminhos válidos são gerados. Uma ideia para pegar
@@ -448,17 +433,6 @@ Proof.
     rewrite <- remove_nat_one_length; auto.
   - rewrite <- H. auto.
 Qed.
-
-
-(* Simplificação da chamada da função de DFS *)
-(* Definition dfs (g: Graph) (o d : Node) := 
-  match g with
-  | Empty => false
-  | _ => dfs' g o d (get_nodes g)
-  end. *)
-
-Definition dfs (g : Graph) (o d : Node) :=
-  dfs' g o d (get_nodes g).
 
 Definition get_paths (g : Graph) (o d : Node) :=
   get_paths' g o d (get_nodes g).
