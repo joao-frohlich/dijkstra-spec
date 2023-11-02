@@ -45,7 +45,7 @@ HASNATDYNLINK     := $(COQMF_HASNATDYNLINK)
 OCAMLWARN         := $(COQMF_WARN)
 
 Makefile.conf: _CoqProject
-	coq_makefile -f _CoqProject graph_functions.v graph_specs.v graph.v impl.v nat_lists_extras.v -o Makefile
+	coq_makefile -f _CoqProject Graphs/graph_functions.v Graphs/graph_specs.v Graphs/graph.v Graphs/impl.v Graphs/nat_lists_extras.v -o Makefile
 
 # This file can be created by the user to hook into double colon rules or
 # add any other Makefile code he may need
