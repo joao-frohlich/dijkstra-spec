@@ -10,7 +10,7 @@ A implementação foi feita utilizando a versão 8.16.1 do Coq.
 
 Para gerar o Makefile deste projeto, basta executar o comando:
 
-`coq_makefile -f _CoqProject *.v -o Makefile`
+`coq_makefile -f _CoqProject Graphs/*.v -o Makefile`
 
 Na pasta [Tentativas/](./Tentativas/) estão contidos os arquivos de teste de modelagem de grafos e implementação dos algoritmos, e a existência da pasta está mais para um registro histórico (eu sei que existe o registro de commits para isso, mas achei melhor manter a pasta). Também dentro desta pasta está o código apresentado na primeira fase do TCC, que mostrava apenas uma formalização de caminhos ponderados, sem nenhum envolvimento de grafos. Para compilar esse arquivo em específico, sugiro usar a versão 8.17 do Coq e também a versão 1.17.0 da [Mathematical Components](https://math-comp.github.io/installation.html)
 
