@@ -1,5 +1,6 @@
-From DijkstraSpec Require Import nat_lists_extras graph graph_functions impl.
+From DijkstraSpec Require Import nat_lists_extras nat_inf_type graph graph_functions impl.
 Import Graph.
+Import NatInf.
 
 Definition Empty_Graph (g : Graph) : Prop :=
     match g with
@@ -45,11 +46,11 @@ Fixpoint Valid_Paths (g : Graph) (paths : list Path) :=
 Definition Get_Paths_Valid (g : Graph) (o d : Node) :=
     Valid_Paths g (get_paths g o d).
 
-Fixpoint Min_Weight (g: Graph) (inf : Weight) (w : Weight) (paths : list Path) :=
+Fixpoint Min_Weight (g: Graph) (w : Weight) (paths : list Path) :=
     match paths with
     | [] => True
-    | path :: paths' => w <= (get_path_weight g inf path) /\ Min_Weight g inf w paths'
+    | path :: paths' => w <=i (get_path_weight g path) /\ Min_Weight g w paths'
     end.
 
 Definition Dijkstra_Min_Weight (g : Graph) (o d : Node) :=
-    Min_Weight g (sum_weights g) (dijkstra g o d) (get_paths g o d).
+    Min_Weight g (dijkstra g o d) (get_paths g o d).

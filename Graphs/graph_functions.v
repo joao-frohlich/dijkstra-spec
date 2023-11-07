@@ -1,5 +1,6 @@
-From DijkstraSpec Require Import graph nat_lists_extras.
+From DijkstraSpec Require Import graph nat_lists_extras nat_inf_type.
 Import Graph.
+Import NatInf.
 
 Fixpoint get_node_context (g : Graph) (u : Node) : option Context :=
     match g with
@@ -57,10 +58,10 @@ Fixpoint get_elem_in_list (a : Adj) (b : list nat) :=
         get_elem_in_list t b
     end.
 
-Fixpoint get_node_dist (dist : list (Node*Weight)) (u : Node) (inf : Weight) : Weight :=
+Fixpoint get_node_dist (dist : list (Node*Weight)) (u : Node) : Weight :=
     match dist with
-    | [] => inf
-    | (u',w) :: dist' => if u =? u' then w else get_node_dist dist' u inf
+    | [] => Infty
+    | (u',w) :: dist' => if u =? u' then w else get_node_dist dist' u
     end.
 
 Fixpoint update_node_dist (dist : list(Node*Weight)) (u : Node) (w : Weight) : list(Node*Weight) :=
@@ -75,12 +76,12 @@ Fixpoint get_edges_in_list (a : Adj) (b : list Node) :=
     | (v,w) :: t => if in_nat_list b v then (v, w) :: get_edges_in_list t b else get_edges_in_list t b
     end.
 
-Fixpoint min_weight_in_list (dist : list(Node*Weight)) (l : list Node) (inf : Weight) : Weight :=
+Fixpoint min_weight_in_list (dist : list(Node*Weight)) (l : list Node) : Weight :=
     match dist with
-    | [] => inf
-    | (u,w) :: t => let md := min_weight_in_list t l inf in
+    | [] => Infty
+    | (u,w) :: t => let md := min_weight_in_list t l in
         if in_nat_list l u then
-            if w <? md then w else md
+            if w <?i md then w else md
         else md
     end.
 
@@ -88,7 +89,7 @@ Fixpoint node_with_min_weight_in_list (dist : list(Node*Weight)) (l : list Node)
     match dist with
     | [] => None
     | (u,w') :: t =>  if in_nat_list l u then
-        if w =? w' then
+        if w =?i w' then
             Some u
         else
             node_with_min_weight_in_list t l w
@@ -96,20 +97,8 @@ Fixpoint node_with_min_weight_in_list (dist : list(Node*Weight)) (l : list Node)
         node_with_min_weight_in_list t l w
     end.
 
-Definition next_node (dist : list(Node*Weight)) (to_vis : list Node) (inf : Weight) :=
-    node_with_min_weight_in_list dist to_vis (min_weight_in_list dist to_vis inf).
-
-Fixpoint sum_adj_weight (a : Adj) :=
-    match a with
-    | [] => 0
-    | (_,w) :: a' => w + sum_adj_weight a'
-    end.
-    
-Fixpoint sum_weights (g : Graph) : Weight :=
-    match g with
-    | Empty => 0
-    | ({_, a}) & g => (sum_adj_weight a) + sum_weights g
-    end.
+Definition next_node (dist : list(Node*Weight)) (to_vis : list Node) :=
+    node_with_min_weight_in_list dist to_vis (min_weight_in_list dist to_vis).
 
 Fixpoint get_edge_weight (a : Adj) (x : Node) : option Weight :=
     match a with
@@ -117,17 +106,17 @@ Fixpoint get_edge_weight (a : Adj) (x : Node) : option Weight :=
     | (y,w) :: a' => if x =? y then Some w else get_edge_weight a' x
     end.
 
-Fixpoint get_path_weight (g : Graph) (inf : Weight) (path : Path) :=
+Fixpoint get_path_weight (g : Graph) (path : Path) :=
     match path with
-    | [] => inf
-    | [x] => 0
+    | [] => Infty
+    | [x] => |0|
     | x :: path' => match head path' with
-        | None => inf
+        | None => Infty
         | Some y => match (get_node_context g x) with
-            | None => inf
+            | None => Infty
             | Some ({_, s}) => match (get_edge_weight s y) with
-                | None => inf
-                | Some w => w + get_path_weight g inf path'
+                | None => Infty
+                | Some w => w +i get_path_weight g path'
                 end
             end
         end

@@ -1,8 +1,9 @@
-From DijkstraSpec Require Import nat_lists_extras.
+From DijkstraSpec Require Import nat_lists_extras nat_inf_type.
+Import NatInf.
 
 Module Graph.
     Definition Node := nat.
-    Definition Weight := nat.
+    Definition Weight := NatInf.
     Definition Adj := list (Node*Weight).
     Definition Path := list Node.
     Inductive Context := 

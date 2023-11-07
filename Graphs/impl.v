@@ -1,6 +1,7 @@
-From DijkstraSpec Require Import nat_lists_extras graph graph_functions.
+From DijkstraSpec Require Import nat_lists_extras graph graph_functions nat_inf_type.
 Require Import Coq.Program.Wf.
 Import Graph.
+Import NatInf.
 
 Program Fixpoint dfs' (g : Graph) (u d : Node) (to_vis : list Node) {measure (length to_vis)} : bool :=
   (* Verifica se o nó atual é o mesmo nó que está sendo procurado pela busca *)
@@ -90,14 +91,14 @@ Definition get_paths (g : Graph) (o d : Node) :=
 get_paths' g o d (get_nodes g).
 
 Definition get_paths_from_o_to_d (g : Graph) (o d : Node) : list Weight :=
-    map (get_path_weight g (sum_weights g)) (get_paths g o d).
+    map (get_path_weight g) (get_paths g o d).
 
 Definition get_min_weight_from_o_to_d (g : Graph) (o d : Node) : Weight :=
-    fold_left min (get_paths_from_o_to_d g o d) (sum_weights g).
+    fold_left min_inf (get_paths_from_o_to_d g o d) Infty.
 
-Program Fixpoint dijkstra' (g : Graph) (u d : Node) (inf : Weight)
+Program Fixpoint dijkstra' (g : Graph) (u d : Node)
   (to_vis : list Node) (dist : list (Node*Weight)) {measure (length to_vis)} : Weight :=
-  if u =? d then (get_node_dist dist d inf)
+  if u =? d then (get_node_dist dist d)
   else
     let to_vis' :=
       set_nat_head to_vis u
@@ -110,9 +111,9 @@ Program Fixpoint dijkstra' (g : Graph) (u d : Node) (inf : Weight)
       let v := (fst n) in
       let w := (snd n) in
       let new_dist := 
-        (get_node_dist dist u inf) + w
+        (get_node_dist dist u) +i w
       in
-      if (new_dist) <? (get_node_dist dist v inf) then
+      if (new_dist) <?i (get_node_dist dist v) then
         update_node_dist dist v new_dist
       else
         dist
@@ -121,10 +122,10 @@ Program Fixpoint dijkstra' (g : Graph) (u d : Node) (inf : Weight)
       fold_left (relax) suc dist
     in
     match to_vis' with
-      | [] => (get_node_dist dist d inf)
-      | h :: t => match (next_node new_dist_list t inf) with
-        | None => (get_node_dist dist d inf)
-        | Some v => dijkstra' g v d inf t new_dist_list
+      | [] => (get_node_dist dist d)
+      | h :: t => match (next_node new_dist_list t) with
+        | None => (get_node_dist dist d)
+        | Some v => dijkstra' g v d t new_dist_list
       end
     end.
 Next Obligation.
@@ -142,10 +143,7 @@ Proof.
 Qed.
 
 Definition dijkstra (g : Graph) (o d : Node) : Weight :=
-  let inf :=
-    sum_weights g
-  in
   let dist :=
-    (combine (get_nodes g) (repeat inf (length (get_nodes g))))
+    (combine (get_nodes g) (repeat Infty (length (get_nodes g))))
   in
-  dijkstra' g o d inf (get_nodes g) (update_node_dist dist o 0).
+  dijkstra' g o d (get_nodes g) (update_node_dist dist o (Nat 0)).
