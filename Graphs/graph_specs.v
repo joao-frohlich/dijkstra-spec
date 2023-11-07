@@ -1,25 +1,25 @@
 From DijkstraSpec Require Import nat_lists_extras graph graph_functions impl.
 Import Graph.
 
-Definition Empty_Graph g :=
+Definition Empty_Graph (g : Graph) : Prop :=
     match g with
     | Empty => True
     | _ => False
     end.
 
-Fixpoint Adj_In_Nodes (a : Adj) (nodes : list Node) :=
+Fixpoint Adj_In_Nodes (a : Adj) (nodes : list Node) : Prop :=
     match a with
     | [] => True
     | (n, _) :: a' => In n nodes /\ Adj_In_Nodes a' nodes
     end.
 
-Fixpoint Valid_Graph' g nodes :=
+Fixpoint Valid_Graph' (g : Graph) (nodes : list Node) : Prop :=
     match g with
     | Empty => True
     | {_, s} & g' => Adj_In_Nodes s nodes /\ Valid_Graph' g' nodes
     end.
 
-Definition Valid_Graph g := Valid_Graph' g (get_nodes g).
+Definition Valid_Graph (g : Graph) : Prop := Valid_Graph' g (get_nodes g).
 
 Fixpoint Valid_Path' (g : Graph) (path : Path) (nodes : list Node) :=
     match path with

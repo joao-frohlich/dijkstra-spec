@@ -97,17 +97,14 @@ Definition get_min_weight_from_o_to_d (g : Graph) (o d : Node) : Weight :=
 
 Program Fixpoint dijkstra' (g : Graph) (u d : Node) (inf : Weight)
   (to_vis : list Node) (dist : list (Node*Weight)) {measure (length to_vis)} : Weight :=
-  let ret := 
-    get_node_dist dist d inf
-  in
-  if u =? d then ret
+  if u =? d then (get_node_dist dist d inf)
   else
     let to_vis' :=
       set_nat_head to_vis u
     in
     let suc := match (get_node_context g u) with
       | None => []
-      | Some (mkcontext _ s) => get_edges_in_list s to_vis
+      | Some ({_, s}) => get_edges_in_list s to_vis
     end in
     let relax (dist : list (Node*Weight)) (n : (Node*Weight)) : list (Node*Weight) :=
       let v := (fst n) in
@@ -124,9 +121,9 @@ Program Fixpoint dijkstra' (g : Graph) (u d : Node) (inf : Weight)
       fold_left (relax) suc dist
     in
     match to_vis' with
-      | [] => ret
+      | [] => (get_node_dist dist d inf)
       | h :: t => match (next_node new_dist_list t inf) with
-        | None => ret
+        | None => (get_node_dist dist d inf)
         | Some v => dijkstra' g v d inf t new_dist_list
       end
     end.

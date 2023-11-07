@@ -108,9 +108,7 @@ Fixpoint sum_adj_weight (a : Adj) :=
 Fixpoint sum_weights (g : Graph) : Weight :=
     match g with
     | Empty => 0
-    | c & g => match c with
-        | mkcontext _ a => (sum_adj_weight a) + sum_weights g
-        end
+    | ({_, a}) & g => (sum_adj_weight a) + sum_weights g
     end.
 
 Fixpoint get_edge_weight (a : Adj) (x : Node) : option Weight :=
