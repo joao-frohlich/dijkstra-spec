@@ -49,10 +49,10 @@ Definition get_paths (g : Graph) (o d : Node) :=
   get_paths' g o d (get_nodes g).
 
 Definition get_paths_from_o_to_d (g : Graph) (o d : Node) : list Weight :=
-    map (get_path_weight g) (get_paths g o d).
+  map (get_path_weight g) (get_paths g o d).
 
 Definition get_min_weight_from_o_to_d (g : Graph) (o d : Node) : Weight :=
-    fold_left min_inf (get_paths_from_o_to_d g o d) Infty.
+  fold_left min_inf (get_paths_from_o_to_d g o d) Infty.
 
 Program Fixpoint dijkstra' (g : Graph) (u d : Node)
   (to_vis : list Node) (dist : list (Node*Weight)) {measure (length to_vis)} : Weight :=

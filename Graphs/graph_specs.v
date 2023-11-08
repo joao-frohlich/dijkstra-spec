@@ -54,3 +54,18 @@ Fixpoint Min_Weight (g: Graph) (w : Weight) (paths : list Path) :=
 
 Definition Dijkstra_Min_Weight (g : Graph) (o d : Node) :=
     Min_Weight g (dijkstra g o d) (get_paths g o d).
+
+Fixpoint valid_pathb' (g : Graph) (path : Path) (nodes : list Node) :=
+    match path with
+    | [] => true
+    | x :: path' => match (head path') with
+                    | None => in_nat_list nodes x
+                    | Some y => match (get_node_context g x) with
+                                | None => false
+                                | Some ({_, s}) => in_nat_list (get_node_sucessors s) y && valid_pathb' g path' nodes
+                                end
+                    end
+    end.
+
+Definition valid_pathb (g : Graph) (path : Path) :=
+    valid_pathb' g path (get_nodes g).

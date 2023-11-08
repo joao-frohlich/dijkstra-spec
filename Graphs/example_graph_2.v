@@ -15,7 +15,7 @@ Proof.
     simpl; repeat split; auto.
 Qed.
 
-Example example_graph_2_get_paths_1_1 : (Get_Paths_Valid example_graph_2 1 1).
+Example example_graph_2_get_paths_1_1_valid : (Get_Paths_Valid example_graph_2 1 1).
 Proof. repeat split; simpl; auto; (try apply example_graph_2_valid). Qed.
 
 Example example_graph_2_dijkstra_1_1 : (Dijkstra_Min_Weight example_graph_2 1 1).

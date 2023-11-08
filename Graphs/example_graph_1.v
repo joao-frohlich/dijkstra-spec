@@ -1,4 +1,4 @@
-From DijkstraSpec Require Import nat_lists_extras nat_inf_type graph graph_functions impl graph_specs extra_tactics.
+From DijkstraSpec Require Import nat_lists_extras nat_inf_type graph graph_functions impl graph_specs extra_tactics perm_paths.
 Import Graph.
 Import NatInf.
 
@@ -14,7 +14,7 @@ Proof.
     simpl; repeat split; auto.
 Qed.
 
-Example example_graph_1_get_paths_1_1 : (Get_Paths_Valid example_graph_1 1 1).
+Example example_graph_1_get_paths_1_1_valid : (Get_Paths_Valid example_graph_1 1 1).
 Proof. repeat split; (try apply example_graph_1_valid); simpl; auto. Qed.
 
 Example example_graph_1_dijkstra_1_1 : (Dijkstra_Min_Weight example_graph_1 1 1).
