@@ -4,4 +4,4 @@ Import NatInf.
 Ltac solve_dijkstra :=
     unfold Dijkstra_Min_Weight;
     simpl; unfold Le_inf, Eq_inf, Lt_inf;
-    repeat split; simpl; intuition.
+    repeat split; compute; intuition.

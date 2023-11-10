@@ -81,6 +81,12 @@ Fixpoint eliminate_invalid_paths (g : Graph) (paths : list Path) :=
         else eliminate_invalid_paths g paths'
     end.
 
+Fixpoint eliminate_path (p : Path) (paths : list Path) :=
+    match paths with
+    | [] => []
+    | p' :: paths' => if eq_lists p p' then paths' else p' :: (eliminate_path p paths')
+    end.
+
 Definition generate_all_valid_graph_paths (g : Graph) :=
     eliminate_empty_perms (eliminate_invalid_paths g (generate_all_graph_paths g)).
 
@@ -107,3 +113,12 @@ Fixpoint paths_with_d_last (paths : list Path) (d : Node) :=
 
 Definition generate_all_valid_graph_paths_from_o_to_d (g : Graph) (o d : Node) :=
     eliminate_empty_perms (paths_with_d_last (paths_with_o_head (generate_all_valid_graph_paths g) o) d).
+
+Fixpoint Eq_Path_Set (a b : list Path) :=
+    match a with
+    | [] => match b with
+        | [] => True
+        | _ => False
+        end
+    | p :: a' => In p b /\ Eq_Path_Set a' (eliminate_path p b)
+    end.
