@@ -53,7 +53,7 @@ Section Dijkstra.
   Implicit Types Q: list vertex.
   Implicit Types u: vertex.
 
-  (* Fixpoint get_weight edges u v :=
+  Fixpoint get_weight edges u v :=
     match edges with
     | [] => 0
     | (u', v', w) :: edges' =>
@@ -64,10 +64,7 @@ Section Dijkstra.
           get_weight edges' u v
       else
         get_weight edges' u v
-    end. *)
-
-  Program Definition get_weight (v : vertex) (u : vertex) : nat :=
-    match 
+    end.
 
   Axiom set: forall {T}, nat -> vertex -> T -> nat.
 
@@ -112,25 +109,52 @@ Section Dijkstra.
     admit.
   Admitted.
 
-  (* Block b2... *)
-  Fixpoint b2 Q V (d p: nat) u :=
+
+  (* 
+Dijkstra(G, s)
+    b0:
+    for all u ∈ V,
+        b1:
+        d(u) <- ∞
+    b2:
+    d(s) <- 0
+    R <- {}
+    while R != V
+        b3:
+        u <- vertex not in R with smallest d(u)
+        R <- insert u R
+        b4:
+        for all vertices v adjacent to u
+            b5:
+            alt <- d(u) + l(u, v)
+            if d(v) > alt
+                b6:
+                d(v) <- alt
+    b7:
+    return d
+  *)
+
+
+
+  (* Block b4... *)
+  Fixpoint b4 Q V (d: nat) u :=
     match V with
     | [] =>
-      (d, p)
+      d
     | v :: V' =>
-      (* Block b3... *)
+      (* Block b5... *)
       let alt := get d u + edges u v in
       if alt <? get d v then
+        (* Block b6 *)
         let d' := set d v alt in
-        let p' := set p v u in
-        b2 Q V' d' p' u
+        b4 Q V' d' u
       else
         (* Continue the for loop. *)
-        b2 Q V' d p u
+        b4 Q V' d u
     end.
 
   (* Block b0... *)
-  Program Fixpoint b0 Q d p { measure (length Q) } :=
+  Program Fixpoint b3 V R  { measure (length V - lenght R) } :=
     if Q (* is empty... *) then
       (* Block b4... *)
       (d, p)

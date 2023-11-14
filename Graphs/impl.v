@@ -105,3 +105,131 @@ Definition dijkstra (g : Graph) (o d : Node) : Weight :=
     (combine (get_nodes g) (repeat Infty (length (get_nodes g))))
   in
   dijkstra' g o d (get_nodes g) (update_node_dist dist o (|0|)).
+
+
+
+(* 
+Dijkstra(G, s)
+    b0:
+    for all u ∈ V,
+        b1:
+        d(u) <- ∞
+    b2:
+    d(s) <- 0
+    R <- {}
+    b3:
+    while R != V
+        b4:
+        u <- vertex not in R with smallest d(u)
+        R <- insert u R
+        b5:
+        for all vertices v adjacent to u
+            b6:
+            alt <- d(u) + l(u, v)
+            if d(v) > alt
+                b7:
+                d(v) <- alt
+    b8:
+    return d
+  *)
+
+  Definition distances := list (Node * Weight).
+
+  Fixpoint set (dist : distances) (u : Node) (w : Weight) :=
+    match dist with
+    | [] => []
+    | (u', w') :: dist' =>
+      if u =? u' then
+        (u, w) :: dist'
+      else
+        (u', w') :: set dist' u w
+    end.
+
+  Fixpoint get (dist : distances) (u : Node) :=
+    match dist with
+    | [] => Infty
+    | (u', w') :: dist' =>
+      if u =? u' then
+        w'
+      else
+        get dist' u
+    end.
+
+  Fixpoint edge_weight (G : Graph) (u v : Node) :=
+    match G with
+    | Empty => Infty
+    | {n, s} & G' =>
+      if n =? u then
+        get s v
+      else
+        edge_weight G' u v
+    end.
+
+  Fixpoint set_diff (V R : list Node) :=
+    match V with
+    | [] => []
+    | v :: V' =>
+      if in_nat_list R v then
+        set_diff V' (remove_nat_one R v)
+      else
+        v :: set_diff V' R
+    end.
+
+  Fixpoint get_sucessors (G : Graph) (u : Node) :=
+    match G with
+    | Empty => []
+    | {n, s} & G' =>
+      if n =? u then
+        get_node_sucessors s
+      else
+        get_sucessors G' u
+    end.
+
+  Fixpoint b5 (G : Graph) (s : Node) (u : Node) (dist : distances) (adj : list Node) :=
+    match adj with
+    | [] => dist
+    | v :: adj' =>
+      (* b6 *)
+      let alt := (get dist u) +i (edge_weight G u v) in
+      if alt <?i (get dist v) then
+        (* b7 *)
+        let dist' := set dist v alt in
+        b5 G s u dist' adj'
+      else
+        b5 G s u dist adj'
+    end.
+
+  Program Fixpoint b3 (G : Graph) (s : Node) (dist : distances) (V R : list Node) { measure (length V - length R) } :=
+    let R_Comp := (set_diff V R) in
+    match R_Comp with
+    | [] => dist
+    | _ =>
+      let u := next_node dist R_Comp in
+      match u with
+      | None => dist
+      | Some u' =>
+        let R' := (u' :: R) in
+        let dist' := b5 G s u' dist (get_sucessors G u') in
+        b3 G s dist' V R'
+      end
+    end.
+
+  Next Obligation.
+  Proof.
+    admit.
+  Admitted.
+
+
+  Fixpoint b1 (V : list Node) : distances :=
+    match V with
+    | [] => []
+    | v :: V' => (v, Infty) :: b1 V'
+    end.
+
+  Definition b0 (G : Graph) (s : Node) :=
+    let V := get_nodes G in
+    let dist := b1 V in
+    (* b2 *)
+    let dist' := set dist s (|0|) in
+    let R := [] in
+    b3 G s dist' V R.

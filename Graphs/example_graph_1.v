@@ -8,6 +8,8 @@ Definition example_graph_1 :=
     { 3, [(2, |1|)]} &
     Empty.
 
+Compute (b0 example_graph_1 1).
+
 Example example_graph_1_valid : Valid_Graph example_graph_1.
 Proof.
     unfold example_graph_1, Valid_Graph.
