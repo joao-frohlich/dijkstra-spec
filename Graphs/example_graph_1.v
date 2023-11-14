@@ -3,8 +3,8 @@ Import Graph.
 Import NatInf.
 
 Definition example_graph_1 :=
-    { 1, [(2, |4|); (3, |2|)] } &
-    { 2, [(1, |1|)]} &
+{ 1, [(2, |4|); (3, |3|)] } &
+{ 2, [(1, |2|)]} &
     { 3, [(2, |1|)]} &
     Empty.
 
