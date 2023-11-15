@@ -31,27 +31,34 @@ Section AssocList.
         lookup cdr key
     end.
 
+  Fixpoint delete_key al key: assoc_list :=
+    match al with
+    | [] =>
+      []
+    | (t, u) :: cdr =>
+      if T_eq_dec key t then
+        delete_key cdr key
+      else
+        (t, u) :: delete_key cdr key
+    end.
+
+  Goal
+    forall al key value,
+    ~In (key, value) (delete_key al key).
+  Proof.
+    induction al; intros; intro.
+    - simpl in H.
+      assumption.
+    - destruct a; simpl in H.
+      destruct (T_eq_dec key t).
+      + firstorder.
+      + destruct H.
+        * dependent destruction H.
+          contradiction.
+        * firstorder.
+  Qed.
+
 End AssocList.
-
-(*
-
-b0(Q, dist, prev):
-        while Q is not empty:
-b1(Q, dist, prev):
-            u ← vertex in Q with min dist[u]
-            remove u from Q
-b2(Q, V, dist, prev, u):
-            for each neighbor v of u still in Q:
-b3(Q, V, dist, prev, u, v):
-                alt ← dist[u] + Graph.Edges(u, v)
-                if alt < dist[v]:
-                    dist[v] ← alt
-                    prev[v] ← u
-                else:
-                    pass
-b4(Q, dist, prev):
-        return dist[], prev[]
-*)
 
 Section Dijkstra.
 
@@ -79,7 +86,7 @@ Section Dijkstra.
     assoc_list vertex nat.
 
   Definition set d v n: distance :=
-    (v, n) :: d.
+    (v, n) :: delete_key vertex_eq_dec d v.
 
   Definition get (d: distance) (v: vertex) (w: nat): nat :=
     match lookup vertex_eq_dec d v with
@@ -154,7 +161,7 @@ Section Dijkstra.
           lia.
   Qed.
 
-  Lemma remove_preservation:
+  Lemma remove_In_preservation:
     forall x Q,
     In x Q ->
     forall y,
@@ -192,6 +199,27 @@ Section Dijkstra.
     admit.
   Admitted.
 
+  (* -------------------------------------------------------------------------
+
+    b0(Q, dist, prev):
+            while Q is not empty:
+    b1(Q, dist, prev):
+                u ← vertex in Q with min dist[u]
+                remove u from Q
+    b2(Q, V, dist, prev, u):
+                for each neighbor v of u still in Q:
+    b3(Q, V, dist, prev, u, v):
+                    alt ← dist[u] + Graph.Edges(u, v)
+                    if alt < dist[v]:
+                        dist[v] ← alt
+                        prev[v] ← u
+                    else:
+                        pass
+    b4(Q, dist, prev):
+            return dist[], prev[]
+
+  ------------------------------------------------------------------------- *)
+
   (* Block b2... *)
   Fixpoint b2 N (d: distance) u :=
     match N with
@@ -220,9 +248,14 @@ Section Dijkstra.
       (* Block b1... *)
       let u := take_shortest Q d _ in
       let Q' := remove Q u in
-      let N := neighbors Q' u in
-      let d' := b2 N d u in
-      b0 Q' d'
+      (* Is u recheable? If so, it has a defined distance! *)
+      if lookup vertex_eq_dec d u then
+        let N := neighbors Q' u in
+        let d' := b2 N d u in
+        b0 Q' d'
+      else
+        (* In here, u is unrecheable (i.e., infinity in the pseudocode). *)
+        b0 Q' d
     end.
 
   Next Obligation.
@@ -231,7 +264,13 @@ Section Dijkstra.
   Defined.
 
   Next Obligation.
-    simpl.
+    rewrite remove_In_decreases_length.
+    - destruct Q; try contradiction.
+      simpl; lia.
+    - apply take_shortest_In.
+  Defined.
+
+  Next Obligation.
     rewrite remove_In_decreases_length.
     - destruct Q; try contradiction.
       simpl; lia.
@@ -340,23 +379,31 @@ Section Dijkstra.
     lia.
   Qed.
 
-  (* Definition sane d: Prop :=
+  Definition sane d: Prop :=
     forall v x,
-    In (v, x) d ->
-    exists2 y,
-    shortest_path s v y & x >= y. *)
+    In (v, x) d -> path s v x.
+
+  Definition recheable v u: Prop :=
+    exists w,
+    shortest_path v u w.
+
+  (* The following proposition is kept at each step of the while loop! *)
 
   Definition invariant (Q: list vertex) (d: distance): Prop :=
     forall v,
     In v V ->
     (* Not visited yet: *) In v Q \/
-       (* Already seem: *) (exists2 w, In (v, w) d & shortest_path s v w).
+       (* Already seem: *) (recheable s v ->
+                           (* If it is reacheable, then... *)
+                              exists2 w, In (v, w) d & shortest_path s v w).
 
-  Lemma invariance_preservation:
+  (* -------------------------------------------- *)
+
+  (* Each time I execute b2, the relaxing function, the sanity is kept! *)
+
+  Lemma sane_preservation:
     forall Q d,
-    invariant Q d ->
-    forall v w,
-    shortest_path s v w ->
+    sane d ->
     forall H u,
     u = take_shortest Q d H ->
     forall Q',
@@ -365,67 +412,103 @@ Section Dijkstra.
     N = neighbors Q' u ->
     forall d',
     d' = b2 N d u ->
+    sane d'.
+  Proof.
+    admit.
+  Admitted.
+
+  (* Each time I execute b2, the relaxing function, our invariant is kept! *)
+
+  Lemma invariance_preservation:
+    forall Q d,
+    invariant Q d ->
+    forall H u,
+    u = take_shortest Q d H ->
+    forall Q',
+    Q' = remove Q u ->
+    forall N,
+    N = neighbors Q' u ->
+    forall d',
+    d' = b2 N d u ->
+    sane d' ->
     invariant Q' d'.
   Proof.
     intros; intros x ?.
-    destruct H with x as [ ? | (y, ?, ?) ]; auto.
-    - (* The node x hasn't been visited. We can visit it now, or it may remain
-         on the queue. Check if we are visiting it now! *)
+    (* The vertex x has already been processed? *)
+    destruct H with x; auto.
+    - (* The vertex x is still on the work list! Are we removing it *now*? *)
       destruct (vertex_eq_dec x u).
-      + (* We are visiting it now! *)
-        right; subst x.
+      + (* We'll process it now! *)
+        subst x; right; intros.
+        destruct H8 as (w, ?).
+        exists w; auto.
+        (* Hmmm... some tricky equations here. *)
         admit.
-      + (* It remains on the queue! *)
-        left; subst.
-        remember (take_shortest Q d H1) as u.
-        apply remove_preservation; auto.
-    - (* We already visited x, so we alrady know its shortest path! *)
-      right; exists y.
-      + (* The relax can't change y, so this relies on H7. *)
-        admit.
-      + assumption.
+      + (* It won't be processed yet! So postpone this... *)
+        left; rewrite H2.
+        apply remove_In_preservation; auto.
+    - (* We have already processed it! So we just keep our invariant: we can't
+         make the path even smaller... *)
+      right; intros.
+      destruct H7 as (w, ?, ?); auto.
+      exists w; auto.
+      (* By H7 we know that d' should have (x, a) such that a <= w. By H5, there
+         is a path from s to x with weight a. By H9, we know that w <= a. So,
+         a = w and we are done. *)
+      admit.
   Admitted.
 
   Lemma step_correctness:
     forall Q d w,
+    sane d ->
     invariant Q d ->
     forall v,
     shortest_path s v w ->
     In (v, w) (b0 Q d).
   Proof.
     intros Q.
+    (* The proof follows by induction on the length of Q. *)
     remember (length Q) as n.
     generalize dependent Q.
     induction n using lt_wf_ind; intros.
     destruct n.
-    - (* We're sure we've seem v! *)
+    - (* If Q is empty, our hypothesis says that every recheable vertex has its
+         optimal path stored in d. *)
       destruct Q; try discriminate; clear Heqn.
       unfold invariant in H0.
       assert (In v V) by (eapply shortest_path_In_V_right; eauto).
-      specialize (H0 v H2).
-      rewrite b0_unfold_done.
-      destruct H0.
-      + exfalso.
-        inversion H0.
-      + destruct H0 as (x, ?, ?).
-        replace w with x.
-        * assumption.
-        * apply shortest_path_unique with s v; auto.
-    - assert (length Q > 0) by lia.
-      rewrite b0_unfold_step with (H := H2); try lia; simpl.
-      remember (take_shortest Q d H2) as u.
+      destruct H1 with v; auto.
+      + inversion H4.
+      + rewrite b0_unfold_done.
+        unfold sane in H0.
+        destruct H4 as (x, ?, ?).
+        * exists w; auto.
+        * replace w with x; auto.
+          apply shortest_path_unique with s v; auto.
+    - (* We still have some work to do! Let's process the smallest value. *)
+      assert (length Q > 0) by lia.
+      rewrite b0_unfold_step with (H := H3); try lia; simpl.
+      remember (take_shortest Q d H3) as u.
       remember (remove Q u) as Q'.
       remember (neighbors Q' u) as N.
       remember (b2 N d u) as d'.
-      (* We can use our inductive hypothesis now! *)
-      apply H with n.
-      + auto.
+      (* Specialize our inductive hypothesis first... *)
+      specialize H with (m := n) (Q := Q') (d := d').
+      (* We can use our inductive hypothesis directy now! *)
+      apply H.
+      + (* |Q| > |Q'| *)
+        auto.
       + rewrite HeqQ'.
         rewrite remove_In_decreases_length; try lia.
         rewrite Hequ.
         apply take_shortest_In; try lia.
+      + (* Relaxing doesn't add paths that don't exist. *)
+        eapply sane_preservation; eauto.
       + eapply invariance_preservation; eauto.
-      + assumption.
+        (* Same as above! *)
+        eapply sane_preservation; eauto.
+      + (* We already know our vertex is recheable with weight w. *)
+        assumption.
   Qed.
 
   Theorem correctness:
@@ -435,8 +518,13 @@ Section Dijkstra.
   Proof.
     intros.
     apply step_correctness.
-    - intros u ?.
-      left; auto.
+    - intros u x ?.
+      destruct H0; try contradiction.
+      dependent destruction H0.
+      constructor.
+      apply shortest_path_In_V_left with v w.
+      assumption.
+    - left; auto.
     - assumption.
   Qed.
 
@@ -447,7 +535,7 @@ End Dijkstra.
 Section Example.
 
   Definition V :=
-    [1; 2; 3].
+    [1; 2; 3; 4].
 
   Definition E: nat -> nat -> option nat :=
     fun v u =>
@@ -456,14 +544,19 @@ Section Example.
       | (1, 3) => Some 3
       | (2, 1) => Some 2
       | (3, 2) => Some 1
+      | (3, 4) => Some 9
+      | (1, 4) => Some 2
       | _ => None
       end.
 
-  Definition example := dijkstra V E 1 Nat.eq_dec.
+  Compute dijkstra V E 1 Nat.eq_dec.
+  Compute dijkstra V E 2 Nat.eq_dec.
+  Compute dijkstra V E 3 Nat.eq_dec.
+  Compute dijkstra V E 4 Nat.eq_dec.
 
 End Example.
 
 Require Import Extraction.
 Extraction Language Haskell.
 
-Recursive Extraction example.
+Recursive Extraction dijkstra.
