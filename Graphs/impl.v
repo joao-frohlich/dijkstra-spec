@@ -88,7 +88,9 @@ Program Fixpoint dijkstra' (g : Graph) (u d : Node)
     end.
 Next Obligation.
 Proof.
+  clear Heq_anonymous dijkstra'.
   rename Heq_to_vis' into H.
+  simpl.
   unfold set_nat_head in H.
   destruct (in_nat_list to_vis u) eqn:E in H.
   - injection H.
